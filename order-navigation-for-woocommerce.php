@@ -3,85 +3,121 @@
  * Plugin Name: Admin Order Navigation for WooCommerce
  * Plugin URI: https://www.sprucely.net/
  * Description: Adds Next and Previous navigation buttons to WooCommerce order edit screen, compatible with HPOS.
- * Version: 1.1
+ * Version: 1.0.3
  * Author: Isaac Russell @ Sprucely Designed
  * Author URI: https://www.sprucely.net
  */
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 // Declare HPOS compatibility.
-add_action( 'before_woocommerce_init', function() {
-    if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
-    }
-});
+add_action(
+	'before_woocommerce_init',
+	function() {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
+	}
+);
 
-// Main plugin class
+use Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController;
+
+/**
+ * Main plugin class for Admin Order Navigation for WooCommerce.
+ *
+ * This class adds Next and Previous navigation buttons to the WooCommerce order edit screen,
+ * ensuring compatibility with both traditional storage and WooCommerce's HPOS.
+ */
 class Sprucely_WC_Order_Navigation_HPOS_Compatible {
 
-    // Constructor
-    public function __construct() {
-        add_action( 'add_meta_boxes', array( $this, 'add_navigation_meta_box' ) );
-    }
+	/**
+	 * Constructor for the Sprucely_WC_Order_Navigation_HPOS_Compatible class.
+	 *
+	 * Sets up the necessary WordPress hooks for adding the navigation meta box.
+	 */
+	public function __construct() {
+		add_action( 'add_meta_boxes', array( $this, 'add_navigation_meta_box' ) );
+	}
 
-    // Add meta box with dynamic screen ID based on HPOS
-    public function add_navigation_meta_box() {
-        $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )->custom_orders_table_usage_is_enabled()
-            ? wc_get_page_screen_id( 'shop-order' )
-            : 'shop_order';
+	/**
+	 * Adds a navigation meta box to the WooCommerce order edit screen.
+	 *
+	 * This method dynamically determines the appropriate screen ID based on whether
+	 * HPOS is enabled to ensure compatibility with both storage systems.
+	 */
+	public function add_navigation_meta_box() {
+		$screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( CustomOrdersTableController::class )->custom_orders_table_usage_is_enabled()
+			? wc_get_page_screen_id( 'shop-order' )
+			: 'shop_order';
 
-        add_meta_box(
-            'order_navigation',
-            __( 'Order Navigation', 'woocommerce' ),
-            array( $this, 'order_navigation_meta_box_content' ),
-            $screen,
-            'side',
-            'high'
-        );
-    }
+		add_meta_box(
+			'order_navigation',
+			__( 'Order Navigation', 'woocommerce' ),
+			array( $this, 'order_navigation_meta_box_content' ),
+			$screen,
+			'side',
+			'high'
+		);
+	}
 
-    // Meta box content
-    public function order_navigation_meta_box_content( $post ) {
-        // Get next and previous order IDs
-        $prev_order_id = $this->get_adjacent_order_id( $post->ID, 'prev' );
-        $next_order_id = $this->get_adjacent_order_id( $post->ID, 'next' );
+	/**
+	 * Outputs the content for the order navigation meta box.
+	 *
+	 * Displays Next and Previous buttons for navigation between orders.
+	 *
+	 * @param WP_Post $post The current post object.
+	 */
+	public function order_navigation_meta_box_content( $post ) {
+		// Get next and previous order IDs
+		$prev_order_id = $this->get_adjacent_order_id( $post->ID, 'prev' );
+		$next_order_id = $this->get_adjacent_order_id( $post->ID, 'next' );
 
-        echo '<div>';
-        if ( $prev_order_id ) {
-            $prev_order_edit_link = get_edit_post_link( $prev_order_id );
-            echo '<a href="' . esc_url( $prev_order_edit_link ) . '" class="button">' . esc_html__( 'Previous Order', 'woocommerce' ) . '</a>';
-        }
-        if ( $next_order_id ) {
-            $next_order_edit_link = get_edit_post_link( $next_order_id );
-            echo '<a href="' . esc_url( $next_order_edit_link ) . '" class="button">' . esc_html__( 'Next Order', 'woocommerce' ) . '</a>';
-        }
-        echo '</div>';
-    }
+		echo '<div>';
+		if ( $prev_order_id ) {
+			$prev_order_edit_link = get_edit_post_link( $prev_order_id );
+			echo '<a href="' . esc_url( $prev_order_edit_link ) . '" class="button">' . esc_html__( 'Previous Order', 'woocommerce' ) . '</a>';
+		}
+		if ( $next_order_id ) {
+			$next_order_edit_link = get_edit_post_link( $next_order_id );
+			echo '<a href="' . esc_url( $next_order_edit_link ) . '" class="button">' . esc_html__( 'Next Order', 'woocommerce' ) . '</a>';
+		}
+		echo '</div>';
+	}
 
-    // Get adjacent order ID
-    private function get_adjacent_order_id( $order_id, $direction = 'next' ) {
-        // Use WC API to determine if HPOS is enabled
-        if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
-            $orders = wc_get_orders( array(
-                'limit'        => 1,
-                'orderby'      => 'id',
-                'order'        => $direction === 'prev' ? 'DESC' : 'ASC',
-                'return'       => 'ids',
-                'status'       => array( 'wc-completed', 'wc-processing', 'wc-on-hold' ),
-                'date_created' => $direction === 'prev' ? '<' : '>',
-            ) );
+	/**
+	 * Retrieves the ID of the adjacent WooCommerce order.
+	 *
+	 * Determines the next or previous order ID, accounting for HPOS if enabled.
+	 *
+	 * @param int    $order_id The current order ID.
+	 * @param string $direction The direction for navigation ('next' or 'prev').
+	 * @return int|null The ID of the adjacent order or null if not found.
+	 */
+	private function get_adjacent_order_id( $order_id, $direction = 'next' ) {
+		// Use WC API to determine if HPOS is enabled
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders = wc_get_orders(
+				array(
+					'limit'        => 1,
+					'orderby'      => 'id',
+					'order'        => $direction === 'prev' ? 'DESC' : 'ASC',
+					'return'       => 'ids',
+					'status'       => array( 'wc-completed', 'wc-processing', 'wc-on-hold' ),
+					'date_created' => $direction === 'prev' ? '<' : '>',
+				)
+			);
 
-            return !empty($orders) ? $orders[0] : null;
-        } else {
-            // Fallback for traditional storage
-            global $wpdb;
-            $operator = ( 'prev' === $direction ) ? '<' : '>';
-            $order = ( 'prev' === $direction ) ? 'DESC' : 'ASC';
-            $query = $wpdb->prepare( "
+			return ! empty( $orders ) ? $orders[0] : null;
+		} else {
+			// Fallback for traditional storage
+			global $wpdb;
+			$operator = ( 'prev' === $direction ) ? '<' : '>';
+			$order    = ( 'prev' === $direction ) ? 'DESC' : 'ASC';
+			$query    = $wpdb->prepare(
+				"
                 SELECT posts.ID
                 FROM $wpdb->posts AS posts
                 WHERE posts.post_type = 'shop_order'
@@ -89,10 +125,12 @@ class Sprucely_WC_Order_Navigation_HPOS_Compatible {
                 AND posts.ID $operator %d
                 ORDER BY posts.ID $order
                 LIMIT 1
-            ", $order_id );
-            return $wpdb->get_var( $query );
-        }
-    }
+            ",
+				$order_id
+			);
+			return $wpdb->get_var( $query );
+		}
+	}
 }
 
 // Initialize the plugin
