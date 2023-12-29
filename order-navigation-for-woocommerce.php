@@ -28,13 +28,17 @@ class Sprucely_WC_Order_Navigation_HPOS_Compatible {
         add_action( 'add_meta_boxes', array( $this, 'add_navigation_meta_box' ) );
     }
 
-    // Add meta box
+    // Add meta box with dynamic screen ID based on HPOS
     public function add_navigation_meta_box() {
+        $screen = class_exists( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' ) && wc_get_container()->get( '\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController' )->custom_orders_table_usage_is_enabled()
+            ? wc_get_page_screen_id( 'shop-order' )
+            : 'shop_order';
+
         add_meta_box(
             'order_navigation',
             __( 'Order Navigation', 'woocommerce' ),
             array( $this, 'order_navigation_meta_box_content' ),
-            'shop_order',
+            $screen,
             'side',
             'high'
         );
