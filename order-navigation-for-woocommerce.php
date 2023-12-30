@@ -73,20 +73,21 @@ class Sprucely_WC_Order_Navigation_HPOS_Compatible {
 	 */
 	public function sprucely_order_navigation_meta_box_content( $post ) {
 		// Get next and previous order IDs
-		$prev_order_id = $this->sprucely_get_adjacent_order_id( $post->ID, 'prev' );
-		$next_order_id = $this->sprucely_get_adjacent_order_id( $post->ID, 'next' );
+		$prev_order_id = absint( $this->sprucely_get_adjacent_order_id( $post->ID, 'prev' ) );
+		$next_order_id = absint( $this->sprucely_get_adjacent_order_id( $post->ID, 'next' ) );
 
 		echo '<div class="sprucely-order-navigation">';
 		if ( $prev_order_id ) {
 			$prev_order_edit_link = get_edit_post_link( $prev_order_id );
-			echo '<a href="' . esc_url( $prev_order_edit_link ) . '" class="button">' . esc_html__( 'Previous Order', 'woocommerce' ) . '</a>';
+			echo '<a href="' . esc_url( $prev_order_edit_link ) . '" class="button button-secondary button-small prev-order" aria-label="' . esc_attr__( 'Go to Previous Order', 'woocommerce' ) . '">' . esc_html__( 'Previous Order', 'woocommerce' ) . '</a>';
 		}
 		if ( $next_order_id ) {
 			$next_order_edit_link = get_edit_post_link( $next_order_id );
-			echo '<a href="' . esc_url( $next_order_edit_link ) . '" class="button">' . esc_html__( 'Next Order', 'woocommerce' ) . '</a>';
+			echo '<a href="' . esc_url( $next_order_edit_link ) . '" class="button button-secondary button-small next-order alignright" aria-label="' . esc_attr__( 'Go to Next Order', 'woocommerce' ) . '">' . esc_html__( 'Next Order', 'woocommerce' ) . '</a>';
 		}
 		echo '</div>';
 	}
+
 
 	/**
 	 * Retrieves the ID of the adjacent WooCommerce order.
