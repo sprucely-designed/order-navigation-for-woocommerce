@@ -98,22 +98,33 @@ class Sprucely_WC_Order_Navigation_HPOS_Compatible {
 	 * @return int|null The ID of the adjacent order or null if not found.
 	 */
 	private function sprucely_get_adjacent_order_id( $order_id, $direction = 'next' ) {
+		// Get the current order object.
+		$current_order = wc_get_order( $order_id );
+
+		if ( ! $current_order ) {
+			return null;
+		}
+
+		// Get the order creation date.
+		$current_order_date = $current_order->get_date_created()->format( 'Y-m-d H:i:s' );
+
 		// Use WC API to determine if HPOS is enabled.
-		if ( class_exists( Automattic\WooCommerce\Utilities\OrderUtil::class ) && Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders = wc_get_orders(
 				array(
 					'limit'        => 1,
-					'orderby'      => 'id',
+					'orderby'      => 'date',
 					'order'        => $direction === 'prev' ? 'DESC' : 'ASC',
 					'return'       => 'ids',
 					'status'       => array( 'wc-completed', 'wc-processing', 'wc-on-hold' ),
-					'date_created' => $direction === 'prev' ? '<' : '>',
+					'date_created' => $direction === 'prev' ? '<' . $current_order_date : '>' . $current_order_date,
 				)
 			);
 
 			return ! empty( $orders ) ? $orders[0] : null;
+
 		} else {
-			// Fallback for traditional storage
+			// Fallback for traditional storage.
 			global $wpdb;
 			$operator = ( 'prev' === $direction ) ? '<' : '>';
 			$order    = ( 'prev' === $direction ) ? 'DESC' : 'ASC';
