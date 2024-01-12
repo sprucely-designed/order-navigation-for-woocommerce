@@ -41,18 +41,71 @@ class Woocommerce_Order_Navigation_Admin {
 	private $version;
 
 	/**
-	 * Initialize the class and set its properties.
+	 * Constructor for the admin class.
 	 *
-	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of this plugin.
-	 * @param      string    $version    The version of this plugin.
+	 * Sets up the WordPress hooks for adding the order navigation meta box.
+	 * It also handles the enqueueing of styles and scripts if needed.
+	 *
+	 * @param string $plugin_name The name of the plugin.
+	 * @param string $version The current version of the plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
-
 		$this->plugin_name = $plugin_name;
-		$this->version = $version;
+		$this->version     = $version;
 
+		add_action( 'add_meta_boxes', array( $this, 'add_order_navigation_meta_box' ) );
 	}
+	/**
+	 * Adds the navigation meta box to the WooCommerce order edit screen.
+	 *
+	 * This method dynamically determines the appropriate screen ID based on whether
+	 * HPOS is enabled to ensure compatibility with both storage systems.
+	 */
+	public function add_order_navigation_meta_box() {
+		// Add the meta box
+		add_meta_box(
+			'woocommerce_order_navigation',
+			__( 'Order Navigation', 'woocommerce-order-navigation' ),
+			array( $this, 'render_order_navigation_meta_box' ),
+			'shop_order',
+			'side',
+			'default'
+		);
+	}
+	/**
+	 * Renders the content inside the order navigation meta box.
+	 *
+	 * This function outputs the HTML for the 'Next' and 'Previous' order navigation buttons,
+	 * allowing quick and easy navigation between WooCommerce orders.
+	 *
+	 * @param WP_Post $post The current post object.
+	 */
+	public function render_order_navigation_meta_box( $post ) {
+		// Get next and previous order IDs
+		$prev_order_id = absint( $this->sprucely_get_adjacent_order_id( $post->ID, 'prev' ) );
+		$next_order_id = absint( $this->sprucely_get_adjacent_order_id( $post->ID, 'next' ) );
+
+		echo '<div class="sprucely-order-navigation">';
+
+		// Next Order Button.
+		if ( $next_order_id ) {
+			$next_order_edit_link = get_edit_post_link( $next_order_id );
+			echo '<a href="' . esc_url( $next_order_edit_link ) . '" class="button button-secondary next-order" aria-label="' . esc_attr__( 'Go to Next Order', 'woocommerce' ) . '">' . esc_html__( 'Next Order', 'woocommerce' ) . '</a>';
+		} else {
+			echo '<button class="button button-secondary next-order alignright disabled" disabled>' . esc_html__( 'Next Order', 'woocommerce' ) . '</button>';
+		}
+
+		// Previous Order Button.
+		if ( $prev_order_id ) {
+			$prev_order_edit_link = get_edit_post_link( $prev_order_id );
+			echo '<a href="' . esc_url( $prev_order_edit_link ) . '" class="button button-secondary prev-order alignright" aria-label="' . esc_attr__( 'Go to Previous Order', 'woocommerce' ) . '">' . esc_html__( 'Previous Order', 'woocommerce' ) . '</a>';
+		} else {
+			echo '<button class="button button-secondary prev-order disabled" disabled>' . esc_html__( 'Previous Order', 'woocommerce' ) . '</button>';
+		}
+
+		echo '</div>';
+	}
+
 
 	/**
 	 * Register the stylesheets for the admin area.

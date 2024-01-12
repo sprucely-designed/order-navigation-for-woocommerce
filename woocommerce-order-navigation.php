@@ -14,9 +14,9 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Quick Order Navigation for WooCommerce
- * Plugin URI:        https://www.sprucely.net/plugins/quick-order-navigation-for-woocommerce/
- * Description:       Quick Order Navigation for WooCommerce streamlines order management by adding convenient 'Next Order' and 'Previous Order' buttons to the WooCommerce order edit screen.
- * Version:           1.0.0
+ * Plugin URI:        https://www.sprucely.net/services/plugins/quick-order-navigation-for-woocommerce/
+ * Description:       Streamline WooCommerce order management with seamless quick navigation buttons in the admin order edit screen.
+ * Version:           1.1.0
  * Author:            Sprucely Designed
  * Author URI:        https://www.sprucely.net/
  * License:           GPL-2.0+
